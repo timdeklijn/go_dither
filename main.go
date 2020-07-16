@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	_ "image/jpeg"
 	"image/png"
 	_ "image/png"
 	"log"
@@ -44,7 +45,7 @@ func writeImageToFile(filePath string, img image.Image) error {
 
 func main() {
 	fmt.Println("Hello World")
-	img, err := readImageFromFilePath("tst.png")
+	img, err := readImageFromFilePath("elephant.jpg")
 	if err != nil {
 		log.Fatalf("Error loading image: %e\n", err)
 	}
@@ -52,21 +53,47 @@ func main() {
 
 	grayImg := createGrayImageFromImage(img)
 
-	ditheredImage := image.NewGray(grayImg.Bounds())
-	for y := ditheredImage.Bounds().Min.Y; y < ditheredImage.Bounds().Max.Y; y++ {
-		for x := ditheredImage.Bounds().Min.X; x < ditheredImage.Bounds().Max.X; x++ {
-			oldPixel := grayImg.At(x, y)
-			r, _, _, _ := oldPixel.RGBA()
-			newPixel := 0
-			if float64(r)/65535.0 > 0.5 {
-				newPixel = 65535
-			}
-			newColor := color.Gray{uint8(newPixel)}
-			ditheredImage.Set(x, y, newColor)
+	copyGray := image.NewGray(grayImg.Bounds())
+	for y := copyGray.Bounds().Min.Y; y < copyGray.Bounds().Max.Y; y++ {
+		for x := copyGray.Bounds().Min.X; x < copyGray.Bounds().Max.X; x++ {
+			pixel := grayImg.At(x, y)
+			r, _, _, _ := pixel.RGBA()
+			newColor := (float64(r) / 65535.0) * 255
+			copyGray.Set(x, y, color.Gray{uint8(newColor)})
 		}
 	}
 
-	err = writeImageToFile("tst_gray.png", ditheredImage)
+	for y := copyGray.Bounds().Min.Y; y < copyGray.Bounds().Max.Y; y++ {
+		for x := copyGray.Bounds().Min.X; x < copyGray.Bounds().Max.X; x++ {
+
+			oldPixel := copyGray.GrayAt(x, y).Y
+			newPixel := 0
+			if oldPixel > 122 {
+				newPixel = 255
+			}
+			copyGray.Set(x, y, color.Gray{uint8(newPixel)})
+
+			quantError := int(oldPixel) - newPixel
+
+			tmpPix := float64(copyGray.GrayAt(x+1, y).Y)
+			tmpColor := (tmpPix + float64(quantError*7/16))
+			copyGray.Set(x+1, y, color.Gray{uint8(tmpColor)})
+
+			tmpPix = float64(copyGray.GrayAt(x-1, y+1).Y)
+			tmpColor = (tmpPix + float64(quantError*3/16))
+			copyGray.Set(x-1, y+1, color.Gray{uint8(tmpColor)})
+
+			tmpPix = float64(copyGray.GrayAt(x, y+1).Y)
+			tmpColor = (tmpPix + float64(quantError*5/16))
+			copyGray.Set(x, y+1, color.Gray{uint8(tmpColor)})
+
+			tmpPix = float64(copyGray.GrayAt(x+1, y+1).Y)
+			tmpColor = (tmpPix + float64(quantError*1/16))
+			copyGray.Set(x+1, y+1, color.Gray{uint8(tmpColor)})
+		}
+	}
+
+	err = writeImageToFile("tst_gray.png", copyGray)
 	if err != nil {
 		log.Fatalf("Error writing image: %e\n", err)
 	}
