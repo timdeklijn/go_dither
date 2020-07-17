@@ -17,3 +17,4 @@ I wanted to get more proficient with Go in three areas:
 * [ ] Create interface to read image from different fiel types
 * [ ] Add functionality to read an image from a URL
 * [ ] Create Webapp
+* [ ] Implement CI/CD and publish app
