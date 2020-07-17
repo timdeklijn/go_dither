@@ -3,10 +3,11 @@ package fsdither
 import (
 	"image"
 	"image/color"
+	"image/png"
 
 	// Needed to read jpegs
 	_ "image/jpeg"
-	"image/png"
+	_ "image/png"
 	"log"
 	"os"
 )
